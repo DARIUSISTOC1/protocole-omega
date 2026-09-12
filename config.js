@@ -1,8 +1,8 @@
 // CONFIGURATION DU JEU PROTOCOLE OMEGA
 const GAME_CONFIG = {
   // Config Supabase (à remplir à l'étape du déploiement)
-  SUPABASE_URL: "VOTRE_SUPABASE_URL",
-  SUPABASE_KEY: "VOTRE_SUPABASE_ANON_KEY",
+  SUPABASE_URL: "https://bqewnmhdghaxxvtmpebp.supabase.co",
+  SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxZXdubWhkZ2hheHh2dG1wZWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMTYyMDUsImV4cCI6MjEwNDc5MjIwNX0.nj5jkQVSqe1hcPxIMpWbj_FjlsI5slWqcyLgspS_vl8",
 
   // Liste des phases du jeu
   phases: {
