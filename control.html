@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OMEGA // CONTROL PANEL</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    body {
+      background-color: #050505;
+      color: #a0a0a0;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 20px;
+      margin: 0;
+    }
+    .header { border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 20px; }
+    .panel { border: 1px solid #222; padding: 15px; margin-bottom: 20px; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 18px;
+      margin: 10px 0;
+      background: #111;
+      border: 1px solid #00ff66;
+      color: #00ff66;
+      font-family: inherit;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .btn:active { background: #00ff66; color: #000; }
+    .btn-reset {
+      border-color: #ff3333;
+      color: #ff3333;
+      margin-top: 30px;
+    }
+    .btn-reset:active { background: #ff3333; color: #000; }
+    .status-val { color: #fff; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>OMEGA // CONTROL PANEL</div>
+    <div>UNIT: OMEGA-01</div>
+  </div>
+
+  <div class="panel">
+    STATUS ACTUEL: <span id="current-status" class="status-val">...</span><br>
+    PHASE ACTUELLE: <span id="current-phase" class="status-val">...</span>
+  </div>
+
+  <div id="controls">
+    <!-- Les boutons de validation seront générés ici -->
+  </div>
+
+  <button class="btn btn-reset" onclick="resetGame()">[ RESET SYSTEM / WAITING ]</button>
+
+  <script>
+    const supabase = supabase.createClient(GAME_CONFIG.SUPABASE_URL, GAME_CONFIG.SUPABASE_KEY);
+
+    // Générer les boutons dynamiquement selon la config
+    const controlsDiv = document.getElementById('controls');
+    Object.keys(GAME_CONFIG.phases).forEach(phaseNum => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.innerText = `[ CONFIRMER POSITION - PHASE ${phaseNum} ]`;
+      btn.onclick = () => validatePosition(phaseNum);
+      controlsDiv.appendChild(btn);
+    });
+
+    async function validatePosition(phaseNumber) {
+      await supabase
+        .from('game_state')
+        .update({ status: 'CONFIRMED', current_phase: parseInt(phaseNumber) })
+        .eq('id', 1);
+      refresh();
+    }
+
+    async function resetGame() {
+      await supabase
+        .from('game_state')
+        .update({ status: 'WAITING', current_phase: 1 })
+        .eq('id', 1);
+      refresh();
+    }
+
+    async function refresh() {
+      const { data } = await supabase.from('game_state').select('*').eq('id', 1).single();
+      if (data) {
+        document.getElementById('current-status').innerText = data.status;
+        document.getElementById('current-phase').innerText = data.current_phase;
+      }
+    }
+
+    // Mise à jour auto de l'IHM organisateur
+    supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, () => refresh())
+      .subscribe();
+
+    refresh();
+  </script>
+</body>
+</html>
