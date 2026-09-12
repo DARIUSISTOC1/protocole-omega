@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OMEGA // FIELD TERMINAL</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --bg: #050505;
+      --text: #a0a0a0;
+      --waiting: #ffb703;
+      --success: #00ff66;
+      --border: #222;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', Courier, monospace;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 90vh;
+      box-sizing: border-box;
+    }
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .status-box {
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin: 20px 0;
+      background: rgba(255, 255, 255, 0.01);
+      position: relative;
+    }
+    .status-box::before {
+      content: "SYS.LOG";
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      background: var(--bg);
+      padding: 0 5px;
+      font-size: 0.7rem;
+      color: #555;
+    }
+    .state-waiting { color: var(--waiting); }
+    .state-success { color: var(--success); }
+    
+    .title { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }
+    .instruction { color: #fff; font-size: 1rem; line-height: 1.5; margin-top: 15px; }
+    .blink { animation: blinker 1.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.3; } }
+    .footer { font-size: 0.7rem; color: #444; border-top: 1px solid var(--border); padding-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div>
+    <div class="header">
+      <span>OMEGA // FIELD TERMINAL</span>
+      <span id="signal">SIGNAL: OK</span>
+    </div>
+
+    <div class="status-box">
+      <div id="phase-code" class="title">SIGNAL DETECTED</div>
+      <div>POSITION: <span id="pos-text" class="state-waiting blink">UNCONFIRMED</span></div>
+    </div>
+
+    <div id="content-area">
+      <p class="blink" style="color: var(--waiting);">En attente de validation du centre de contrôle...</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    SECURE CONNECTION // OMEGA-NET-V4<br>
+    ID: TERMINAL-OMEGA-01
+  </div>
+
+  <script>
+    const supabase = supabase.createClient(GAME_CONFIG.SUPABASE_URL, GAME_CONFIG.SUPABASE_KEY);
+
+    // Écouter les changements en temps réel
+    supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, payload => {
+        updateUI(payload.new);
+      })
+      .subscribe();
+
+    // Charger l'état initial
+    async function loadState() {
+      const { data } = await supabase.from('game_state').select('*').eq('id', 1).single();
+      if (data) updateUI(data);
+    }
+
+    function updateUI(state) {
+      const posText = document.getElementById('pos-text');
+      const phaseCode = document.getElementById('phase-code');
+      const contentArea = document.getElementById('content-area');
+
+      if (state.status === 'CONFIRMED') {
+        const currentPhase = GAME_CONFIG.phases[state.current_phase] || { code: "PHASE INCONNUE", instruction: "Aucune instruction." };
+        
+        posText.innerText = "CONFIRMED";
+        posText.className = "state-success";
+        
+        phaseCode.innerText = currentPhase.code;
+        
+        contentArea.innerHTML = `
+          <div style="color: var(--success); font-weight: bold; margin-bottom: 10px;">> POSITION CONFIRMED</div>
+          <div style="color: var(--success); font-weight: bold; margin-bottom: 15px;">> PHASE UNLOCKED</div>
+          <div class="instruction">${currentPhase.instruction}</div>
+        `;
+      } else {
+        posText.innerText = "UNCONFIRMED";
+        posText.className = "state-waiting blink";
+        phaseCode.innerText = "SIGNAL DETECTED";
+        contentArea.innerHTML = `<p class="blink" style="color: var(--waiting);">En attente de validation du centre de contrôle...</p>`;
+      }
+    }
+
+    loadState();
+  </script>
+</body>
+</html>
