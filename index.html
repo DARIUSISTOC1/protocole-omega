@@ -85,10 +85,11 @@
   </div>
 
   <script>
-    const supabase = supabase.createClient(GAME_CONFIG.SUPABASE_URL, GAME_CONFIG.SUPABASE_KEY);
+    // Correction de la variable ici (supabaseClient)
+    const supabaseClient = supabase.createClient(GAME_CONFIG.SUPABASE_URL, GAME_CONFIG.SUPABASE_KEY);
 
     // Écouter les changements en temps réel
-    supabase
+    supabaseClient
       .channel('schema-db-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, payload => {
         updateUI(payload.new);
@@ -97,7 +98,7 @@
 
     // Charger l'état initial
     async function loadState() {
-      const { data } = await supabase.from('game_state').select('*').eq('id', 1).single();
+      const { data } = await supabaseClient.from('game_state').select('*').eq('id', 1).single();
       if (data) updateUI(data);
     }
 
