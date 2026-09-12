@@ -53,26 +53,29 @@
   </div>
 
   <div id="controls">
-    <!-- Les boutons de validation seront générés ici -->
+    <!-- Les boutons verts vont s'afficher ici -->
   </div>
 
   <button class="btn btn-reset" onclick="resetGame()">[ RESET SYSTEM / WAITING ]</button>
 
   <script>
-    const supabase = supabase.createClient(GAME_CONFIG.SUPABASE_URL, GAME_CONFIG.SUPABASE_KEY);
+    // Initialisation avec le nom corrigé (supabaseClient)
+    const supabaseClient = supabase.createClient(GAME_CONFIG.SUPABASE_URL, GAME_CONFIG.SUPABASE_KEY);
 
-    // Générer les boutons dynamiquement selon la config
+    // Génération dynamique des boutons verts selon config.js
     const controlsDiv = document.getElementById('controls');
-    Object.keys(GAME_CONFIG.phases).forEach(phaseNum => {
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.innerText = `[ CONFIRMER POSITION - PHASE ${phaseNum} ]`;
-      btn.onclick = () => validatePosition(phaseNum);
-      controlsDiv.appendChild(btn);
-    });
+    if (GAME_CONFIG && GAME_CONFIG.phases) {
+      Object.keys(GAME_CONFIG.phases).forEach(phaseNum => {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerText = `[ CONFIRMER POSITION - PHASE ${phaseNum} ]`;
+        btn.onclick = () => validatePosition(phaseNum);
+        controlsDiv.appendChild(btn);
+      });
+    }
 
     async function validatePosition(phaseNumber) {
-      await supabase
+      await supabaseClient
         .from('game_state')
         .update({ status: 'CONFIRMED', current_phase: parseInt(phaseNumber) })
         .eq('id', 1);
@@ -80,7 +83,7 @@
     }
 
     async function resetGame() {
-      await supabase
+      await supabaseClient
         .from('game_state')
         .update({ status: 'WAITING', current_phase: 1 })
         .eq('id', 1);
@@ -88,15 +91,15 @@
     }
 
     async function refresh() {
-      const { data } = await supabase.from('game_state').select('*').eq('id', 1).single();
+      const { data } = await supabaseClient.from('game_state').select('*').eq('id', 1).single();
       if (data) {
         document.getElementById('current-status').innerText = data.status;
         document.getElementById('current-phase').innerText = data.current_phase;
       }
     }
 
-    // Mise à jour auto de l'IHM organisateur
-    supabase
+    // Écoute des changements
+    supabaseClient
       .channel('schema-db-changes')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_state' }, () => refresh())
       .subscribe();
